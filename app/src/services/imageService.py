@@ -1,5 +1,6 @@
 import logging
 from src.models.factory import ModelFactory
+from PIL import Image
 
 class ImageService:
     """
@@ -11,7 +12,7 @@ class ImageService:
         self.model = ModelFactory.create_unified_model(detector_name, recognizer_name)
         self.logger.info(f"Loaded model: 人脸检测模型: {detector_name}, 情感识别模型: {recognizer_name}")
     
-    def process(self, image):
+    def process(self, image: Image) -> list:
         """处理图像并返回结果"""
         self.logger.info("Starting image processing...")
         result = []
