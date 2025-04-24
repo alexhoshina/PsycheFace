@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import numpy as np
 from src.models.base import EmotionRecognitionModel, FaceDetectionModel
 
@@ -9,7 +9,7 @@ class UnifiedModel:
         self._detector = detector
         self._recognizer = recognizer
     
-    def detect_faces(self, image: np.ndarray) -> List[Dict[str, int]]:
+    def detect_faces(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
         return self._detector.detect_faces(image)
     
     def recognize_emotion(self, face_image: np.ndarray) -> int:

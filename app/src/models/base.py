@@ -16,6 +16,13 @@ class FaceDetectionModel(ABC):
 class EmotionRecognitionModel(ABC):
     """表情识别模型接口"""
     @abstractmethod
+    def preprocess_image(self, image: np.ndarray) -> np.ndarray:
+        """
+        预处理图像，返回适合模型输入的格式
+        """
+        pass
+    
+    @abstractmethod
     def recognize_emotion(self, face_image: np.ndarray) -> int:
         """
         识别表情，返回预定义表情代号（如 1=开心，2=悲伤等）
