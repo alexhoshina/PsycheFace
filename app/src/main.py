@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from .controllers.image_controller import ImageProcessingController
 from .services.image_processor import ImageProcessor
 from .utils.logging_utils import setup_logging
-from .config import Config
 
 app = FastAPI()
 setup_logging()  # 初始化日志
