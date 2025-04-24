@@ -16,10 +16,12 @@ class ImageService:
         try:
             detection_result = self.model.detect_faces(image)
             for res in detection_result:
-                x, y, w, h = res
-                face_img = image[y:y+h, x:x+w]
+                x1, y1, x2, y2 = res
+                h = y2 - y1
+                w = x2 - x1
+                face_img = image[y1:y1+h, x1:x1+w]
                 emotion_code = self.model.recognize_emotion(face_img)
-                result.append((emotion_code, x, y, w, h))
+                result.append((int(emotion_code), int(x1), int(y1), int(x2), int(y2)))
         except Exception as e:
             self.logger.error(f"Processing error: {str(e)}")
             raise
