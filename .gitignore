@@ -1,0 +1,38 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 虚拟环境
+venv/
+env/
+.venv/
+venv_bak/
+ENV/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.vs/
+
+# 运行时文件
+*.log
+*.db
+*.sqlite3
+
+# 测试
+.coverage
+htmlcov/
+
+# 构建
+dist/
+build/
+*.egg-info
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 数据集 
+emotion/fer-2013/
