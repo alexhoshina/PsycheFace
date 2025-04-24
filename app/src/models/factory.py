@@ -53,9 +53,9 @@ class ModelFactory:
     @classmethod
     def get_detector_names(cls) -> Dict[str, str]:
         """获取所有检测器名称"""
-        return {name: name for name in cls._detector_registry.keys()}
+        return list(cls._detector_registry.keys())
     
     @classmethod
     def get_recognizer_names(cls) -> Dict[str, str]:
         """获取所有识别器名称"""
-        return {name: name for name in cls._recognizer_registry.keys()}
+        return list(cls._recognizer_registry.keys())

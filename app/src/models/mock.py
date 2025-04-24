@@ -5,15 +5,17 @@ from src.models.base import EmotionRecognitionModel, FaceDetectionModel
 from src.models.factory import ModelFactory
 
 
-@ModelFactory.register_detector("mock", model_path="null")
+@ModelFactory.register_detector("mockD", model_path="null", input_shape=(100, 100))
+@ModelFactory.register_detector("mockD2", model_path="null")
 class MockDetector(FaceDetectionModel):
     """模拟人脸检测"""
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, input_shape: tuple):
+        print(input_shape)
         pass
     def detect_faces(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
         return [(0, 0, 0, 0)]
 
-@ModelFactory.register_recognizer("mock", model_path="null")
+@ModelFactory.register_recognizer("mockR", model_path="null")
 class MockRecognizer(EmotionRecognitionModel):
     """模拟表情识别"""
     def __init__(self, model_path: str):
