@@ -134,3 +134,35 @@ export async function sendImageData(socket, imageData) {
     }
   });
 }
+
+
+/**
+ * 上传图像进行表情识别
+ * @param {File} file - 要上传的图像文件
+ * @param {string} detectorName - 人脸检测模型名称
+ * @param {string} recognizerName - 情感识别模型名称
+ * @returns {Promise<Array>} - 识别结果
+ */
+export async function uploadImageForPrediction(file, detectorName, recognizerName) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const url = `http://${BASE_URL}/predict?detector_name=${encodeURIComponent(detectorName)}&recognizer_name=${encodeURIComponent(recognizerName)}`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`服务器错误 (${response.status}): ${errorText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('图像识别失败:', error);
+    throw new Error(`图像识别请求失败: ${error.message}`);
+  }
+}

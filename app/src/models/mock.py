@@ -13,7 +13,7 @@ class MockDetector(FaceDetectionModel):
         print(input_shape)
         pass
     def detect_faces(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
-        return [(0, 0, 0, 0)]
+        return [(10, 10, 60, 60)]
 
 @ModelFactory.register_recognizer("mockR", model_path="null")
 class MockRecognizer(EmotionRecognitionModel):

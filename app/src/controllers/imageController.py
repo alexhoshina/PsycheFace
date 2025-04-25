@@ -28,7 +28,7 @@ class ImageController:
                     self.service.process, image
                 )
                 
-                await websocket.send_json({"result": predictions})
+                await websocket.send_json(predictions)
         except WebSocketDisconnect:
             pass
         except Exception as e:
