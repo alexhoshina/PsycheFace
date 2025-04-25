@@ -53,7 +53,7 @@ export function createWebSocketConnection(detector, recognizer, callbacks = {}) 
   }
   
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const wsUrl = `${protocol}//${BASE_URL}/ws?detector=${detector}&recognizer=${recognizer}`;
+  const wsUrl = `ws://${BASE_URL}/ws?detector=${detector}&recognizer=${recognizer}`;
   
   const socket = new WebSocket(wsUrl);
   
