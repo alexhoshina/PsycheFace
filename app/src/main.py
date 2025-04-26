@@ -35,7 +35,7 @@ async def predict(
     try:
         controller = get_controller(detector_name, recognizer_name) # 获取控制器实例
         predictions = await controller.handle_upload(file)
-        return {"result": predictions}
+        return predictions
     except Exception as e:
         return {"error": str(e)}, 400
 

@@ -1,33 +1,29 @@
+import cv2
 import logging
+
+import numpy as np
+
 from src.models.factory import ModelFactory
-from PIL import Image
 
 class ImageService:
-    """
-    图像处理服务
-    负责模型推理和结果整合
-    """
     def __init__(self, detector_name: str, recognizer_name: str) -> None:
         self.logger = logging.getLogger(__name__)
         self.model = ModelFactory.create_unified_model(detector_name, recognizer_name)
         self.logger.info(f"Loaded model: 人脸检测模型: {detector_name}, 情感识别模型: {recognizer_name}")
     
-    def process(self, image: Image) -> list:
-        """处理图像并返回结果"""
-        self.logger.info("Starting image processing...")
+    def process(self, image: np.ndarray) -> list:
         result = []
         try:
-            # 使用统一模型检测人脸位置
             detection_result = self.model.detect_faces(image)
             for res in detection_result:
-                face_img = image.crop(res)
+                x1, y1, x2, y2 = res
+                h = y2 - y1
+                w = x2 - x1
+                face_img = image[y1:y1+h, x1:x1+w]
                 emotion_code = self.model.recognize_emotion(face_img)
-                result.append((
-                    emotion_code, res[0], res[1], res[2], res[3]
-                ))
+                result.append((int(emotion_code), int(x1), int(y1), int(x2), int(y2)))
         except Exception as e:
             self.logger.error(f"Processing error: {str(e)}")
             raise
         
-        self.logger.info("Processing completed.")
         return result
