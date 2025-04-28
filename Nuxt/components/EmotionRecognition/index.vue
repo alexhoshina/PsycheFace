@@ -11,6 +11,7 @@
       :show-face-box="showFaceBox"
       :show-emotion-text="showEmotionText"
       :show-emoji="showEmoji"
+      :media-stream="mediaStream"
       ref="cameraViewRef"
       @file-uploaded="handleFileUploaded"
     />
@@ -87,7 +88,7 @@ const {
 } = useModels(connectionStatus)
 
 const { 
-  availableCameras, selectedCamera, cameraFacing,
+  mediaStream,availableCameras, selectedCamera, cameraFacing,
   setupCamera, releaseCamera, getAvailableCameras,
   handleCameraChange, toggleCamera
 } = useCamera(connectionStatus, isMobileDevice)
