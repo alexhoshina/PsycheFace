@@ -2,14 +2,13 @@
   <div class="mb-8 relative">
     <div class="bg-gray-900 rounded-lg overflow-hidden aspect-video relative">
       <!-- 视频显示 -->
-      <video
-        v-show="mode === 'realtime'"
-        ref="videoEl"
-        autoplay
-        muted
-        playsinline
-        class="w-full h-full object-cover"
-      ></video>
+      <video 
+          v-show="mode === 'realtime'" 
+          ref="videoEl" 
+          class="absolute inset-0 w-full h-full object-cover"
+          autoplay
+          playsinline
+        ></video>
       
       <!-- 上传图片显示 -->
       <div v-show="mode === 'upload'" class="w-full h-full flex items-center justify-center">
@@ -72,6 +71,10 @@ const props = defineProps({
   showEmoji: {
     type: Boolean,
     default: true
+  },
+  mediaStream: {
+    type: MediaStream,
+    default: null
   }
 })
 
@@ -200,6 +203,13 @@ function setupCanvas() {
     canvasEl.value.height = container.clientHeight
   }
 }
+
+// 监听媒体流变化
+watch(() => props.mediaStream, (newStream) => {
+  if (newStream && videoEl.value) {
+    videoEl.value.srcObject = newStream
+  }
+})
 
 onMounted(() => {
   setupCanvas()
