@@ -2,16 +2,26 @@
   <div class="mb-8 relative">
     <div class="bg-gray-900 rounded-lg overflow-hidden aspect-video relative">
       <!-- 视频显示 -->
-      <video 
-          v-show="mode === 'realtime'" 
-          ref="videoEl" 
-          class="absolute inset-0 w-full h-full object-cover"
+      <div 
+        ref="videoContainer" 
+        class="absolute inset-0 w-full h-full"
+        :class="{'opacity-0': mode !== 'realtime'}"
+      >
+        <video
+          ref="videoEl"
           autoplay
+          muted
           playsinline
+          class="w-full h-full object-cover"
         ></video>
+      </div>
       
       <!-- 上传图片显示 -->
-      <div v-show="mode === 'upload'" class="w-full h-full flex items-center justify-center">
+      <div 
+        ref="uploadContainer"
+        class="absolute inset-0 w-full h-full flex items-center justify-center"
+        :class="{'opacity-0': mode !== 'upload'}"
+      >
         <img 
           v-if="uploadedImage" 
           :src="uploadedImage" 
@@ -20,15 +30,19 @@
         />
         <div 
           v-else 
-          class="text-white text-center p-8"
+          class="text-white text-center p-8 w-full h-full flex items-center justify-center"
           @dragover.prevent="onDragOver"
           @dragleave.prevent="onDragLeave"
           @drop.prevent="onDrop"
-          :class="{'bg-blue-800/30': isDragging}"
+          ref="dropZone"
         >
-          <div class="border-2 border-dashed border-gray-400 rounded-lg p-8" :class="{'border-blue-400': isDragging}">
+          <div 
+            class="border-2 border-dashed border-gray-400 rounded-lg p-12 transition-all duration-300 transform"
+            :class="{'border-blue-400 scale-105 bg-blue-800/20': isDragging}"
+            ref="dropZoneInner"
+          >
             <p class="mb-4">拖放图片到这里或</p>
-            <label class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg cursor-pointer">
+            <label class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg cursor-pointer inline-block">
               选择文件
               <input type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
             </label>
@@ -47,7 +61,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
+import { gsap } from 'gsap'
 import { drawFacesOnCanvas } from '~/utils/canvasUtils'
 
 // Props
@@ -73,7 +88,7 @@ const props = defineProps({
     default: true
   },
   mediaStream: {
-    type: MediaStream,
+    //type: MediaStream,
     default: null
   }
 })
@@ -89,24 +104,130 @@ const uploadedFile = ref(null)
 const uploadedImageProcessed = ref(false)
 const isDragging = ref(false)
 
-// 拖拽处理
+// 动画容器
+const videoContainer = ref(null)
+const uploadContainer = ref(null)
+const dropZone = ref(null)
+const dropZoneInner = ref(null)
+
+// 处理模式变化的动画
+watch(() => props.mode, (newMode, oldMode) => {
+  if (!videoContainer.value || !uploadContainer.value) return
+  
+  // 淡出当前模式
+  const fadeOut = newMode === 'realtime' ? uploadContainer.value : videoContainer.value
+  const fadeIn = newMode === 'realtime' ? videoContainer.value : uploadContainer.value
+  
+  gsap.to(fadeOut, {
+    opacity: 0,
+    duration: 0.3,
+    ease: 'power2.out'
+  })
+  
+  gsap.to(fadeIn, {
+    opacity: 1,
+    duration: 0.3,
+    delay: 0.1,
+    ease: 'power2.out'
+  })
+  
+  // 如果切换到上传模式，添加上传区域动画
+  if (newMode === 'upload' && dropZoneInner.value) {
+    gsap.fromTo(dropZoneInner.value, 
+      { y: 20, opacity: 0 },
+      { y: 0, opacity: 1, duration: 0.5, delay: 0.2, ease: 'back.out' }
+    )
+  }
+})
+
+// 拖拽处理动画
 function onDragOver(event) {
   isDragging.value = true
+  if (dropZoneInner.value) {
+    gsap.to(dropZoneInner.value, {
+      scale: 1.05,
+      boxShadow: "0 0 30px rgba(59, 130, 246, 0.3)",
+      duration: 0.2
+    })
+  }
 }
 
 function onDragLeave(event) {
   isDragging.value = false
+  if (dropZoneInner.value) {
+    gsap.to(dropZoneInner.value, {
+      scale: 1,
+      boxShadow: "none",
+      duration: 0.2
+    })
+  }
 }
 
 function onDrop(event) {
   isDragging.value = false
+  
+  if (dropZoneInner.value) {
+    gsap.to(dropZoneInner.value, {
+      scale: 1,
+      boxShadow: "none",
+      duration: 0.2
+    })
+  }
+  
   const files = event.dataTransfer.files
   
   if (files.length > 0 && files[0].type.startsWith('image/')) {
     handleFileSelection(files[0])
+    
+    // 添加文件上传成功动画
+    gsap.fromTo(dropZoneInner.value,
+      { scale: 0.95, opacity: 0.8 },
+      { 
+        scale: 1, 
+        opacity: 1, 
+        duration: 0.4,
+        ease: "elastic.out(1, 0.5)" 
+      }
+    )
   }
 }
 
+// 处理上传图片时的动画
+function handleFileSelection(file) {
+  uploadedFile.value = file
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    // 创建一个图像预加载对象
+    const img = new Image()
+    img.onload = () => {
+      // 图像加载完成后执行动画
+      uploadedImage.value = e.target.result
+      uploadedImageProcessed.value = false
+      
+      // 通知父组件已上传文件
+      emit('file-uploaded', file)
+      
+      nextTick(() => {
+        if (imageEl.value) {
+          // 图像显示动画
+          gsap.fromTo(imageEl.value,
+            { opacity: 0, scale: 0.9 },
+            { 
+              opacity: 1, 
+              scale: 1, 
+              duration: 0.5,
+              ease: "power2.out" 
+            }
+          )
+        }
+      })
+    }
+    
+    img.src = e.target.result
+  }
+  reader.readAsDataURL(file)
+}
 // 处理上传图片
 function handleFileUpload(event) {
   const file = event.target.files[0]
@@ -114,21 +235,6 @@ function handleFileUpload(event) {
   
   handleFileSelection(file)
 }
-
-function handleFileSelection(file) {
-  uploadedFile.value = file
-  
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    uploadedImage.value = e.target.result
-    uploadedImageProcessed.value = false
-    
-    // 通知父组件已上传文件
-    emit('file-uploaded', file)
-  }
-  reader.readAsDataURL(file)
-}
-
 // 清除上传的图片
 function clearUploadedImage() {
   uploadedImage.value = null
@@ -167,7 +273,16 @@ function captureUploadedImage() {
   return canvas
 }
 
-// 绘制识别结果
+// 设置Canvas大小
+function setupCanvas() {
+  if (canvasEl.value) {
+    const container = canvasEl.value.parentElement
+    canvasEl.value.width = container.clientWidth
+    canvasEl.value.height = container.clientHeight
+  }
+}
+
+// 绘制识别结果时添加动画
 function drawResults(results, showFaceBox, showEmotionText, showEmoji) {
   if (!canvasEl.value || !results.length) return
   
@@ -186,21 +301,18 @@ function drawResults(results, showFaceBox, showEmotionText, showEmoji) {
   // 清除之前的绘制
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   
+  // 使用动画显示canvas
+  gsap.fromTo(canvas,
+    { opacity: 0 },
+    { opacity: 1, duration: 0.3, ease: "power1.out" }
+  )
+  
   // 绘制人脸框和表情
   drawFacesOnCanvas(ctx, results, showFaceBox, showEmotionText, showEmoji)
   
   // 如果是上传图片模式，标记为已处理
   if (props.mode === 'upload') {
     uploadedImageProcessed.value = true
-  }
-}
-
-// 设置Canvas大小
-function setupCanvas() {
-  if (canvasEl.value) {
-    const container = canvasEl.value.parentElement
-    canvasEl.value.width = container.clientWidth
-    canvasEl.value.height = container.clientHeight
   }
 }
 

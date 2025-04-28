@@ -10,5 +10,8 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/scripts',
     '@nuxt/ui'
+  ],
+  plugins: [
+    '~/plugins/gsap.js'
   ]
 })
