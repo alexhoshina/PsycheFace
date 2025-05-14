@@ -15,7 +15,8 @@ class ImageController:
     提供文件上传和WebSocket实时处理两种接口，支持异步处理图像数据。
     """
     def __init__(self, service: ImageService):
-        self.service = service 
+        self.service = service
+
     async def handle_upload(self, file: UploadFile):
         """处理上传的图像文件。
 
@@ -40,17 +41,17 @@ class ImageController:
             while True:
                 image_data = await websocket.receive_bytes()
                 nparr = np.frombuffer(image_data, np.uint8)
-                image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)            
+                image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
                 predictions = await asyncio.to_thread(
                     self.service.process, image
-                )         
+                )
                 await websocket.send_json(predictions)
         except WebSocketDisconnect:
             pass
-        except Exception as e:
+        except (ValueError, IOError, RuntimeError) as e:
             await websocket.send_json({
-                "error": f"Unexpected error: {str(e)}",
-                "code": "INTERNAL_ERROR"
+                "error": f"处理错误: {str(e)}",
+                "code": "PROCESSING_ERROR"
             })
         finally:
             await websocket.close()

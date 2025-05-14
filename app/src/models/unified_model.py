@@ -13,7 +13,6 @@ class UnifiedModel:
     def __init__(self, detector: FaceDetectionModel, recognizer: EmotionRecognitionModel):
         self._detector = detector
         self._recognizer = recognizer
-    
     def detect_faces(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """检测图像中的人脸。
 
@@ -24,7 +23,6 @@ class UnifiedModel:
             List[Tuple[int, int, int, int]]: 人脸边界框列表，每个边界框为 (x1, y1, x2, y2)
         """
         return self._detector.detect_faces(image)
-    
     def recognize_emotion(self, face_image: np.ndarray) -> int:
         """识别人脸图像中的表情。
 
@@ -34,4 +32,4 @@ class UnifiedModel:
         Returns:
             int: 表情代号（如 1=开心，2=悲伤等）
         """
-        return self._recognizer.recognize_emotion(face_image) 
+        return self._recognizer.recognize_emotion(face_image)

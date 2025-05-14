@@ -41,7 +41,7 @@ class ModelFactory:
         def decorator(model_class: Type[EmotionRecognitionModel]):
             cls._recognizer_registry[name] = (model_class, kwargs)
             return model_class
-        return decorator 
+        return decorator
     @classmethod
     def create_detector(cls, name: str) -> FaceDetectionModel:
         """根据参数创建实例"""

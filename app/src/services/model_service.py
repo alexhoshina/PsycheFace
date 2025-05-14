@@ -16,4 +16,4 @@ class ModelService:
         """
         detector_names = ModelFactory.get_detector_names()
         recognizer_names = ModelFactory.get_recognizer_names()
-        return detector_names, recognizer_names 
+        return detector_names, recognizer_names

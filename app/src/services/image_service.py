@@ -18,7 +18,6 @@ class ImageService:
         self.logger = logging.getLogger(__name__)
         self.model = ModelFactory.create_unified_model(detector_name, recognizer_name)
         self.logger.info("Loaded model: 人脸检测模型: %s, 情感识别模型: %s", detector_name, recognizer_name)
-    
     def process(self, image: np.ndarray) -> list:
         """处理图像，检测人脸并识别表情。
 
@@ -44,5 +43,4 @@ class ImageService:
         except Exception as e:
             self.logger.error("Processing error: %s", str(e))
             raise
-        
-        return result 
+        return result

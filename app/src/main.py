@@ -74,8 +74,8 @@ async def predict(
 
 @app.websocket("/ws")
 async def websocket_endpoint(
-    websocket: WebSocket, 
-    detector: str, 
+    websocket: WebSocket,
+    detector: str,
     recognizer: str
 ):
     """处理WebSocket连接，用于实时情感识别。
