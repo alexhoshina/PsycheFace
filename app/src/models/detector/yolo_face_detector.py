@@ -38,4 +38,4 @@ class YoloFaceDetector(FaceDetectionModel):
         """
         results = self.model(image)
         boxes = results[0].boxes.xyxy.cpu().numpy().astype(int).tolist()
-        return [(int(box[0]),int(box[1]),int(box[2]),int(box[3])) for box in boxes] 
+        return [(int(box[0]),int(box[1]),int(box[2]),int(box[3])) for box in boxes]
