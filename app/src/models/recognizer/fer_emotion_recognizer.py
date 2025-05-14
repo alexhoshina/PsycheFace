@@ -1,14 +1,25 @@
+# type: ignore
+"""FER情感识别模型模块。
+
+使用FER数据集训练的深度学习模型进行表情识别。
+"""
+
 import cv2
 import numpy as np
-import tensorflow as tf
+import tensorflow.keras as keras
 
-from src.models.base import EmotionRecognitionModel
-from src.models.factory import ModelFactory
+from ..base import EmotionRecognitionModel
+from ..factory import ModelFactory
+
 
 @ModelFactory.register_recognizer("fer_1", model_path="fer_v1.h5", input_shape=(100, 100, 3))
 class FEREmotionRecognizer(EmotionRecognitionModel):
+    """基于FER数据集的深度学习表情识别模型。
+
+    使用预训练的深度学习模型进行人脸表情识别，支持多种基本表情类别。
+    """
     def __init__(self, model_path: str, input_shape: tuple):
-        self.model = tf.keras.models.load_model(model_path)
+        self.model = keras.models.load_model(model_path)
         self.input_shape = input_shape
     
     def preprocess_image(self, image: np.ndarray) -> np.ndarray:
@@ -21,4 +32,4 @@ class FEREmotionRecognizer(EmotionRecognitionModel):
     def recognize_emotion(self, face_image: np.ndarray) -> int:
         input_array = self.preprocess_image(face_image)
         prediction = self.model.predict(input_array)
-        return np.argmax(prediction)
+        return np.argmax(prediction) 

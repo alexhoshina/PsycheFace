@@ -1,8 +1,13 @@
-from typing import Dict, List, Tuple
+"""模拟模型模块。
+
+提供用于测试和开发的人脸检测和情感识别的模拟实现。
+"""
+
+from typing import List, Tuple
 import numpy as np
 
-from src.models.base import EmotionRecognitionModel, FaceDetectionModel
-from src.models.factory import ModelFactory
+from .base import EmotionRecognitionModel, FaceDetectionModel
+from .factory import ModelFactory
 
 
 @ModelFactory.register_detector("mockD", model_path="null")
@@ -18,7 +23,6 @@ class MockDetector(FaceDetectionModel):
 class MockRecognizer(EmotionRecognitionModel):
     """模拟表情识别"""
     def __init__(self, model_path: str, input_shape: tuple):
-        print(input_shape)
         pass
     def preprocess_image(self, image: np.ndarray) -> np.ndarray:
         pass
