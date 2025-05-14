@@ -18,13 +18,6 @@ class MockDetector(FaceDetectionModel):
         pass
     def detect_faces(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
         return [(10, 10, 60, 60)]
-    def momo(self):
-        """用于通过Pylint检查的辅助方法。
-
-        Returns:
-            str: 固定的测试字符串
-        """
-        return '这是用来通过Pylint检查的方法'
 
 @ModelFactory.register_recognizer("mockR", model_path="null", input_shape=(100, 100))
 class MockRecognizer(EmotionRecognitionModel):

@@ -16,17 +16,6 @@ class YoloFaceDetector(FaceDetectionModel):
     """YOLO人脸检测实现"""
     def __init__(self, model_path: str):
         self.model = YOLO(model_path)
-    def get_model_info(self) -> dict:
-        """获取模型信息。
-
-        Returns:
-            dict: 包含模型版本和配置信息的字典
-        """
-        return {
-            "name": "YOLOv5",
-            "version": self.model.version,
-            "input_size": self.model.model.args.get("imgsz", 640)
-        }
     def detect_faces(self, image: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """使用YOLO模型检测图像中的人脸。
 

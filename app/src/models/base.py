@@ -16,13 +16,6 @@ class FaceDetectionModel(ABC):
         检测人脸，返回边界框列表
         格式：[{'x1': int, 'y1': int, 'x2': int, 'y2': int}, ...]
         """
-    @abstractmethod
-    def get_info(self) -> dict:
-        """获取模型信息。
-
-        Returns:
-            dict: 包含模型名称、版本等信息的字典
-        """
 
 class EmotionRecognitionModel(ABC):
     """表情识别模型接口"""
