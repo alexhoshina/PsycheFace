@@ -6,7 +6,7 @@
 
 import cv2
 import numpy as np
-import tensorflow.keras as keras
+from tensorflow import keras
 
 from ..base import EmotionRecognitionModel
 from ..factory import ModelFactory
