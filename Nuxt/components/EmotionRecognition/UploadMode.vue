@@ -1,26 +1,9 @@
 <template>
   <div class="mb-8 relative">
     <div class="bg-gray-900 rounded-lg overflow-hidden aspect-video relative">
-      <!-- 视频显示 -->
-      <div 
-        ref="videoContainer" 
-        class="absolute inset-0 w-full h-full"
-        :class="{'opacity-0': mode !== 'realtime'}"
-      >
-        <video
-          ref="videoEl"
-          autoplay
-          muted
-          playsinline
-          class="w-full h-full object-cover"
-        ></video>
-      </div>
-      
-      <!-- 上传图片显示 -->
       <div 
         ref="uploadContainer"
         class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
-        :class="{'opacity-0': mode !== 'upload'}"
       >
         <template v-if="uploadedImage">
           <div class="relative w-full h-full flex items-center justify-center">
@@ -62,16 +45,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { gsap } from 'gsap'
 import { drawFacesOnCanvas } from '~/utils/canvasUtils'
 
-// Props
 const props = defineProps({
-  mode: {
-    type: String,
-    required: true
-  },
   isRecognizing: {
     type: Boolean,
     default: false
@@ -87,62 +65,20 @@ const props = defineProps({
   showEmoji: {
     type: Boolean,
     default: true
-  },
-  mediaStream: {
-    //type: MediaStream,
-    default: null
   }
 })
 
 const emit = defineEmits(['file-uploaded'])
 
 // Refs
-const videoEl = ref(null)
 const canvasEl = ref(null)
-const imageEl = ref(null)
+const displayCanvas = ref(null)
 const uploadedImage = ref(null)
 const uploadedFile = ref(null)
-const uploadedImageProcessed = ref(false)
 const isDragging = ref(false)
-
-// 动画容器
-const videoContainer = ref(null)
 const uploadContainer = ref(null)
 const dropZone = ref(null)
 const dropZoneInner = ref(null)
-
-// 添加displayCanvas的ref
-const displayCanvas = ref(null)
-
-// 处理模式变化的动画
-watch(() => props.mode, (newMode, oldMode) => {
-  if (!videoContainer.value || !uploadContainer.value) return
-  
-  // 淡出当前模式
-  const fadeOut = newMode === 'realtime' ? uploadContainer.value : videoContainer.value
-  const fadeIn = newMode === 'realtime' ? videoContainer.value : uploadContainer.value
-  
-  gsap.to(fadeOut, {
-    opacity: 0,
-    duration: 0.3,
-    ease: 'power2.out'
-  })
-  
-  gsap.to(fadeIn, {
-    opacity: 1,
-    duration: 0.3,
-    delay: 0.1,
-    ease: 'power2.out'
-  })
-  
-  // 如果切换到上传模式，添加上传区域动画
-  if (newMode === 'upload' && dropZoneInner.value) {
-    gsap.fromTo(dropZoneInner.value, 
-      { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.5, delay: 0.2, ease: 'back.out' }
-    )
-  }
-})
 
 // 拖拽处理动画
 function onDragOver(event) {
@@ -182,29 +118,16 @@ function onDrop(event) {
   
   if (files.length > 0 && files[0].type.startsWith('image/')) {
     handleFileSelection(files[0])
-    
-    // 添加文件上传成功动画
-    gsap.fromTo(dropZoneInner.value,
-      { scale: 0.95, opacity: 0.8 },
-      { 
-        scale: 1, 
-        opacity: 1, 
-        duration: 0.4,
-        ease: "elastic.out(1, 0.5)" 
-      }
-    )
   }
 }
 
-// 处理上传图片时的动画
+// 处理文件选择
 function handleFileSelection(file) {
   uploadedFile.value = file
   
   const reader = new FileReader()
   reader.onload = (e) => {
-    console.log('文件读取完成，开始加载图片')
     uploadedImage.value = e.target.result
-    uploadedImageProcessed.value = false
     
     // 通知父组件已上传文件
     emit('file-uploaded', file)
@@ -229,97 +152,24 @@ function handleFileSelection(file) {
   }
   reader.readAsDataURL(file)
 }
-// 处理上传图片
+
+// 处理文件上传
 function handleFileUpload(event) {
   const file = event.target.files[0]
   if (!file) return
   
   handleFileSelection(file)
 }
+
 // 清除上传的图片
 function clearUploadedImage() {
   uploadedImage.value = null
   uploadedFile.value = null
-  uploadedImageProcessed.value = false
 }
 
 // 获取上传的文件
 function getUploadedFile() {
   return uploadedFile.value
-}
-
-// 捕获视频帧
-function captureVideoFrame() {
-  if (!videoEl.value || videoEl.value.readyState < 2) return null
-  
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-  canvas.width = videoEl.value.videoWidth
-  canvas.height = videoEl.value.videoHeight
-  context.drawImage(videoEl.value, 0, 0, canvas.width, canvas.height)
-  
-  return canvas
-}
-
-// 捕获上传的图片
-function captureUploadedImage() {
-  if (!displayCanvas.value || !uploadedImage.value) return null
-  
-  const canvas = document.createElement('canvas')
-  const context = canvas.getContext('2d')
-  const displayCtx = displayCanvas.value.getContext('2d')
-  
-  // 创建临时图片对象
-  const img = new Image()
-  img.onload = () => {
-    canvas.width = img.naturalWidth
-    canvas.height = img.naturalHeight
-    context.drawImage(img, 0, 0, canvas.width, canvas.height)
-  }
-  
-  img.src = uploadedImage.value
-  return canvas
-}
-
-// 设置Canvas大小
-function setupCanvas() {
-  if (!canvasEl.value) return
-  
-  if (props.mode === 'realtime' && videoEl.value) {
-    const container = canvasEl.value.parentElement
-    canvasEl.value.width = container.clientWidth
-    canvasEl.value.height = container.clientHeight
-  } else if (props.mode === 'upload' && imageEl.value) {
-    updateCanvasSize()
-  }
-}
-
-// 更新Canvas大小以匹配图片
-function updateCanvasSize() {
-  if (!canvasEl.value || !imageEl.value) {
-    console.log('updateCanvasSize: canvas或image元素不存在', {
-      canvas: canvasEl.value,
-      image: imageEl.value
-    })
-    return
-  }
-  
-  console.log('更新Canvas大小前:', {
-    canvasWidth: canvasEl.value.width,
-    canvasHeight: canvasEl.value.height,
-    imageNaturalWidth: imageEl.value.naturalWidth,
-    imageNaturalHeight: imageEl.value.naturalHeight,
-    imageClientWidth: imageEl.value.clientWidth,
-    imageClientHeight: imageEl.value.clientHeight
-  })
-  
-  canvasEl.value.width = imageEl.value.naturalWidth
-  canvasEl.value.height = imageEl.value.naturalHeight
-  
-  console.log('更新Canvas大小后:', {
-    canvasWidth: canvasEl.value.width,
-    canvasHeight: canvasEl.value.height
-  })
 }
 
 // 更新显示canvas
@@ -366,15 +216,9 @@ function updateDisplayCanvas() {
   img.src = uploadedImage.value
 }
 
-// 修改drawResults函数
-function drawResults(results, showFaceBox, showEmotionText, showEmoji) {
+// 绘制结果
+function drawResults(results) {
   if (!canvasEl.value || !results.length || !displayCanvas.value || !uploadedImage.value) {
-    console.log('drawResults: canvas不存在或没有结果', {
-      canvas: canvasEl.value,
-      displayCanvas: displayCanvas.value,
-      resultsLength: results.length,
-      hasImage: !!uploadedImage.value
-    })
     return
   }
   
@@ -393,7 +237,7 @@ function drawResults(results, showFaceBox, showEmotionText, showEmoji) {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
     
     // 绘制人脸框和表情
-    drawFacesOnCanvas(ctx, results, showFaceBox, showEmotionText, showEmoji)
+    drawFacesOnCanvas(ctx, results, props.showFaceBox, props.showEmotionText, props.showEmoji)
     
     // 将绘制结果复制到显示canvas
     const container = displayCanvas.value.parentElement
@@ -421,46 +265,26 @@ function drawResults(results, showFaceBox, showEmotionText, showEmoji) {
   img.src = uploadedImage.value
 }
 
-// 监听媒体流变化
-watch(() => props.mediaStream, (newStream) => {
-  if (newStream && videoEl.value) {
-    videoEl.value.srcObject = newStream
-  }
-})
-
 onMounted(() => {
-  setupCanvas()
-  
   // 监听窗口尺寸变化
-  window.addEventListener('resize', () => {
-    setupCanvas()
-    updateDisplayCanvas()
-  })
+  window.addEventListener('resize', updateDisplayCanvas)
 })
 
-// 清除事件监听
 onUnmounted(() => {
-  window.removeEventListener('resize', () => {
-    setupCanvas()
-    updateDisplayCanvas()
-  })
+  window.removeEventListener('resize', updateDisplayCanvas)
 })
 
 // 暴露函数给父组件
 defineExpose({
-  videoEl,
   canvasEl,
-  captureVideoFrame,
-  captureUploadedImage,
-  drawResults,
   clearUploadedImage,
-  getUploadedFile
+  getUploadedFile,
+  drawResults
 })
 </script>
 
 <style scoped>
-/* 添加过渡效果 */
 .text-white {
   transition: all 0.3s ease;
 }
-</style>
+</style> 
