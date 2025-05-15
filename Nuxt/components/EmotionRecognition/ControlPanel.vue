@@ -86,13 +86,34 @@
     
     <!-- 控制按钮和开关 -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
+      <div class="flex flex-col space-y-3">
+        <!-- 实时模式下的识别按钮 -->
         <button 
+          v-if="mode === 'realtime'"
           @click="handleRecognitionClick"
           class="w-full px-4 py-3 rounded-lg text-white font-medium transition-colors"
           :class="isRecognizing ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'"
         >
           {{ isRecognizing ? '暂停识别' : '开始识别' }}
+        </button>
+        
+        <!-- 上传模式下的识别按钮 -->
+        <button 
+          v-else
+          @click="handleRecognitionClick"
+          class="w-full px-4 py-3 rounded-lg text-white font-medium transition-colors bg-blue-500 hover:bg-blue-600"
+          :disabled="isRecognizing"
+        >
+          开始识别
+        </button>
+        
+        <!-- 上传新图片按钮 -->
+        <button 
+          v-if="mode === 'upload'"
+          @click="handleUploadNewClick"
+          class="w-full px-4 py-3 rounded-lg text-white font-medium transition-colors bg-gray-500 hover:bg-gray-600"
+        >
+          上传新图片
         </button>
       </div>
       
@@ -149,7 +170,8 @@ const emit = defineEmits([
   'toggle-camera',
   'update:show-face-box',
   'update:show-emotion-text',
-  'update:show-emoji'
+  'update:show-emoji',
+  'upload-new'
 ])
 
 // 添加面板引用
@@ -158,6 +180,19 @@ const panelEl = ref(null)
 // 按钮点击带动画
 function handleRecognitionClick(event) {
   emit('toggle-recognition')
+  
+  // 添加按钮按下效果
+  if (event && event.currentTarget) {
+    gsap.fromTo(event.currentTarget, 
+      { scale: 0.95 },
+      { scale: 1, duration: 0.3, ease: "elastic.out(1, 0.3)" }
+    )
+  }
+}
+
+// 添加上传新图片的处理函数
+function handleUploadNewClick(event) {
+  emit('upload-new')
   
   // 添加按钮按下效果
   if (event && event.currentTarget) {

@@ -40,6 +40,7 @@
       @update:show-face-box="showFaceBox = $event"
       @update:show-emotion-text="showEmotionText = $event"
       @update:show-emoji="showEmoji = $event"
+      @upload-new="handleUploadNew"
     />
     
     <EmotionStats :emotion-stats="emotionStats" />
@@ -240,6 +241,10 @@ async function processUploadedImage() {
     connectionStatus.value = `错误: 图片处理失败 - ${error.message}`
   } finally {
     isUploading.value = false
+    // 在上传模式下，处理完成后自动停止识别状态
+    if (mode.value === 'upload') {
+      isRecognizing.value = false
+    }
   }
 }
 
@@ -270,6 +275,9 @@ watch([selectedDetector, selectedRecognizer], () => {
         startRecognition()
       })
     }
+  } else if (mode.value === 'upload' && uploadedFile.value) {
+    // 在上传模式下，即使不在识别状态，如果模型改变且有上传的图片，也重新处理
+    processUploadedImage()
   }
 })
 
@@ -281,6 +289,27 @@ watch(mode, (newMode) => {
     processUploadedImage()
   }
 })
+
+// 处理上传新图片
+function handleUploadNew() {
+  // 清除当前图片和识别状态
+  cameraViewRef.value?.clearUploadedImage()
+  uploadedFile.value = null
+  isRecognizing.value = false
+  
+  // 重置表情统计
+  emotionStats.value = Object.fromEntries(
+    Object.keys(emotionLabels).map(key => [key, 0])
+  )
+  
+  // 更新状态
+  connectionStatus.value = '请上传新图片'
+  setTimeout(() => {
+    if (connectionStatus.value === '请上传新图片') {
+      connectionStatus.value = ''
+    }
+  }, 2000)
+}
 
 // 组件加载和卸载
 onMounted(async () => {
