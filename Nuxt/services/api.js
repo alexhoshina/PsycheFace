@@ -52,7 +52,6 @@ export function createWebSocketConnection(detector, recognizer, callbacks = {}) 
     throw new Error('必须提供检测器和识别器模型名称');
   }
   
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const wsUrl = `ws://${BASE_URL}/ws?detector=${detector}&recognizer=${recognizer}`;
   
   const socket = new WebSocket(wsUrl);

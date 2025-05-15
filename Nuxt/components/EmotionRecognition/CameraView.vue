@@ -19,15 +19,23 @@
       <!-- 上传图片显示 -->
       <div 
         ref="uploadContainer"
-        class="absolute inset-0 w-full h-full flex items-center justify-center"
+        class="absolute inset-0 w-full h-full flex items-center justify-center overflow-hidden"
         :class="{'opacity-0': mode !== 'upload'}"
       >
-        <img 
-          v-if="uploadedImage" 
-          :src="uploadedImage" 
-          class="max-w-full max-h-full object-contain" 
-          ref="imageEl"
-        />
+        <template v-if="uploadedImage">
+          <div class="relative w-full h-full flex items-center justify-center">
+            <!-- 显示用的canvas -->
+            <canvas
+              ref="displayCanvas"
+              class="max-w-full max-h-full object-contain"
+            ></canvas>
+            <!-- 绘制用的canvas（隐藏） -->
+            <canvas
+              ref="canvasEl"
+              class="hidden"
+            ></canvas>
+          </div>
+        </template>
         <div 
           v-else 
           class="text-white text-center p-8 w-full h-full flex items-center justify-center"
@@ -49,13 +57,6 @@
           </div>
         </div>
       </div>
-      
-      <!-- 人脸检测框和表情标签叠加层 -->
-      <canvas
-        v-show="isRecognizing || uploadedImageProcessed"
-        ref="canvasEl"
-        class="absolute top-0 left-0 w-full h-full"
-      ></canvas>
     </div>
   </div>
 </template>
@@ -109,6 +110,9 @@ const videoContainer = ref(null)
 const uploadContainer = ref(null)
 const dropZone = ref(null)
 const dropZoneInner = ref(null)
+
+// 添加displayCanvas的ref
+const displayCanvas = ref(null)
 
 // 处理模式变化的动画
 watch(() => props.mode, (newMode, oldMode) => {
@@ -198,33 +202,30 @@ function handleFileSelection(file) {
   
   const reader = new FileReader()
   reader.onload = (e) => {
-    // 创建一个图像预加载对象
-    const img = new Image()
-    img.onload = () => {
-      // 图像加载完成后执行动画
-      uploadedImage.value = e.target.result
-      uploadedImageProcessed.value = false
-      
-      // 通知父组件已上传文件
-      emit('file-uploaded', file)
-      
-      nextTick(() => {
-        if (imageEl.value) {
-          // 图像显示动画
-          gsap.fromTo(imageEl.value,
-            { opacity: 0, scale: 0.9 },
-            { 
-              opacity: 1, 
-              scale: 1, 
-              duration: 0.5,
-              ease: "power2.out" 
-            }
-          )
-        }
-      })
-    }
+    console.log('文件读取完成，开始加载图片')
+    uploadedImage.value = e.target.result
+    uploadedImageProcessed.value = false
     
-    img.src = e.target.result
+    // 通知父组件已上传文件
+    emit('file-uploaded', file)
+    
+    nextTick(() => {
+      if (displayCanvas.value) {
+        // 更新显示canvas
+        updateDisplayCanvas()
+        
+        // 图像显示动画
+        gsap.fromTo(displayCanvas.value,
+          { opacity: 0, scale: 0.9 },
+          { 
+            opacity: 1, 
+            scale: 1, 
+            duration: 0.5,
+            ease: "power2.out" 
+          }
+        )
+      }
+    })
   }
   reader.readAsDataURL(file)
 }
@@ -262,58 +263,162 @@ function captureVideoFrame() {
 
 // 捕获上传的图片
 function captureUploadedImage() {
-  if (!imageEl.value || !uploadedImage.value) return null
+  if (!displayCanvas.value || !uploadedImage.value) return null
   
   const canvas = document.createElement('canvas')
   const context = canvas.getContext('2d')
-  canvas.width = imageEl.value.naturalWidth
-  canvas.height = imageEl.value.naturalHeight
-  context.drawImage(imageEl.value, 0, 0, canvas.width, canvas.height)
+  const displayCtx = displayCanvas.value.getContext('2d')
   
+  // 创建临时图片对象
+  const img = new Image()
+  img.onload = () => {
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    context.drawImage(img, 0, 0, canvas.width, canvas.height)
+  }
+  
+  img.src = uploadedImage.value
   return canvas
 }
 
 // 设置Canvas大小
 function setupCanvas() {
-  if (canvasEl.value) {
+  if (!canvasEl.value) return
+  
+  if (props.mode === 'realtime' && videoEl.value) {
     const container = canvasEl.value.parentElement
     canvasEl.value.width = container.clientWidth
     canvasEl.value.height = container.clientHeight
+  } else if (props.mode === 'upload' && imageEl.value) {
+    updateCanvasSize()
   }
 }
 
-// 绘制识别结果时添加动画
+// 更新Canvas大小以匹配图片
+function updateCanvasSize() {
+  if (!canvasEl.value || !imageEl.value) {
+    console.log('updateCanvasSize: canvas或image元素不存在', {
+      canvas: canvasEl.value,
+      image: imageEl.value
+    })
+    return
+  }
+  
+  console.log('更新Canvas大小前:', {
+    canvasWidth: canvasEl.value.width,
+    canvasHeight: canvasEl.value.height,
+    imageNaturalWidth: imageEl.value.naturalWidth,
+    imageNaturalHeight: imageEl.value.naturalHeight,
+    imageClientWidth: imageEl.value.clientWidth,
+    imageClientHeight: imageEl.value.clientHeight
+  })
+  
+  canvasEl.value.width = imageEl.value.naturalWidth
+  canvasEl.value.height = imageEl.value.naturalHeight
+  
+  console.log('更新Canvas大小后:', {
+    canvasWidth: canvasEl.value.width,
+    canvasHeight: canvasEl.value.height
+  })
+}
+
+// 更新显示canvas
+function updateDisplayCanvas() {
+  if (!displayCanvas.value || !uploadedImage.value) return
+  
+  const displayCtx = displayCanvas.value.getContext('2d')
+  const container = displayCanvas.value.parentElement
+  
+  // 创建临时图片对象
+  const img = new Image()
+  img.onload = () => {
+    // 设置显示canvas的尺寸为容器大小
+    displayCanvas.value.width = container.clientWidth
+    displayCanvas.value.height = container.clientHeight
+    
+    // 清除画布
+    displayCtx.clearRect(0, 0, displayCanvas.value.width, displayCanvas.value.height)
+    
+    // 计算图片的显示尺寸和位置
+    const imgRatio = img.naturalWidth / img.naturalHeight
+    const containerRatio = container.clientWidth / container.clientHeight
+    
+    let drawWidth, drawHeight, offsetX, offsetY
+    
+    if (imgRatio > containerRatio) {
+      // 图片更宽，以宽度为基准
+      drawWidth = container.clientWidth
+      drawHeight = drawWidth / imgRatio
+      offsetX = 0
+      offsetY = (container.clientHeight - drawHeight) / 2
+    } else {
+      // 图片更高，以高度为基准
+      drawHeight = container.clientHeight
+      drawWidth = drawHeight * imgRatio
+      offsetX = (container.clientWidth - drawWidth) / 2
+      offsetY = 0
+    }
+    
+    // 绘制图片
+    displayCtx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight)
+  }
+  
+  img.src = uploadedImage.value
+}
+
+// 修改drawResults函数
 function drawResults(results, showFaceBox, showEmotionText, showEmoji) {
-  if (!canvasEl.value || !results.length) return
+  if (!canvasEl.value || !results.length || !displayCanvas.value || !uploadedImage.value) {
+    console.log('drawResults: canvas不存在或没有结果', {
+      canvas: canvasEl.value,
+      displayCanvas: displayCanvas.value,
+      resultsLength: results.length,
+      hasImage: !!uploadedImage.value
+    })
+    return
+  }
   
   const canvas = canvasEl.value
   const ctx = canvas.getContext('2d')
+  const displayCtx = displayCanvas.value.getContext('2d')
   
-  // 确保canvas大小与视频/图片大小一致
-  if (props.mode === 'realtime' && videoEl.value) {
-    canvas.width = videoEl.value.videoWidth
-    canvas.height = videoEl.value.videoHeight
-  } else if (props.mode === 'upload' && imageEl.value) {
-    canvas.width = imageEl.value.naturalWidth
-    canvas.height = imageEl.value.naturalHeight
+  // 创建临时图片对象
+  const img = new Image()
+  img.onload = () => {
+    // 设置绘制canvas为图片原始尺寸
+    canvas.width = img.naturalWidth
+    canvas.height = img.naturalHeight
+    
+    // 清除之前的绘制
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    
+    // 绘制人脸框和表情
+    drawFacesOnCanvas(ctx, results, showFaceBox, showEmotionText, showEmoji)
+    
+    // 将绘制结果复制到显示canvas
+    const container = displayCanvas.value.parentElement
+    const imgRatio = img.naturalWidth / img.naturalHeight
+    const containerRatio = container.clientWidth / container.clientHeight
+    
+    let drawWidth, drawHeight, offsetX, offsetY
+    
+    if (imgRatio > containerRatio) {
+      drawWidth = container.clientWidth
+      drawHeight = drawWidth / imgRatio
+      offsetX = 0
+      offsetY = (container.clientHeight - drawHeight) / 2
+    } else {
+      drawHeight = container.clientHeight
+      drawWidth = drawHeight * imgRatio
+      offsetX = (container.clientWidth - drawWidth) / 2
+      offsetY = 0
+    }
+    
+    // 将绘制结果复制到显示canvas
+    displayCtx.drawImage(canvas, offsetX, offsetY, drawWidth, drawHeight)
   }
   
-  // 清除之前的绘制
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  
-  // 使用动画显示canvas
-  gsap.fromTo(canvas,
-    { opacity: 0 },
-    { opacity: 1, duration: 0.3, ease: "power1.out" }
-  )
-  
-  // 绘制人脸框和表情
-  drawFacesOnCanvas(ctx, results, showFaceBox, showEmotionText, showEmoji)
-  
-  // 如果是上传图片模式，标记为已处理
-  if (props.mode === 'upload') {
-    uploadedImageProcessed.value = true
-  }
+  img.src = uploadedImage.value
 }
 
 // 监听媒体流变化
@@ -327,12 +432,18 @@ onMounted(() => {
   setupCanvas()
   
   // 监听窗口尺寸变化
-  window.addEventListener('resize', setupCanvas)
+  window.addEventListener('resize', () => {
+    setupCanvas()
+    updateDisplayCanvas()
+  })
 })
 
 // 清除事件监听
 onUnmounted(() => {
-  window.removeEventListener('resize', setupCanvas)
+  window.removeEventListener('resize', () => {
+    setupCanvas()
+    updateDisplayCanvas()
+  })
 })
 
 // 暴露函数给父组件
