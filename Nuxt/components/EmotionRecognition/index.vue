@@ -5,14 +5,25 @@
       @update:mode="handleModeChange" 
     />
     
-    <CameraView 
-      :mode="mode"
+    <!-- 实时模式 -->
+    <RealtimeMode
+      v-if="mode === 'realtime'"
       :is-recognizing="isRecognizing"
       :show-face-box="showFaceBox"
       :show-emotion-text="showEmotionText"
       :show-emoji="showEmoji"
       :media-stream="mediaStream"
-      ref="cameraViewRef"
+      ref="realtimeModeRef"
+    />
+    
+    <!-- 上传模式 -->
+    <UploadMode
+      v-else
+      :is-recognizing="isRecognizing"
+      :show-face-box="showFaceBox"
+      :show-emotion-text="showEmotionText"
+      :show-emoji="showEmoji"
+      ref="uploadModeRef"
       @file-uploaded="handleFileUploaded"
     />
     
@@ -50,7 +61,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ModeSelector from './ModeSelector.vue'
-import CameraView from './CameraView.vue'
+import RealtimeMode from './RealtimeMode.vue'
+import UploadMode from './UploadMode.vue'
 import ControlPanel from './ControlPanel.vue'
 import EmotionStats from './EmotionStats.vue'
 import StatusBar from './StatusBar.vue'
@@ -62,7 +74,8 @@ import { emotionLabels } from '~/utils/emotions'
 import { uploadImageForPrediction } from '~/services/api'
 
 // 引用
-const cameraViewRef = ref(null)
+const realtimeModeRef = ref(null)
+const uploadModeRef = ref(null)
 
 // 状态
 const mode = ref('realtime') // 'realtime' 或 'upload'
@@ -89,7 +102,7 @@ const {
 } = useModels(connectionStatus)
 
 const { 
-  mediaStream,availableCameras, selectedCamera, cameraFacing,
+  mediaStream, availableCameras, selectedCamera, cameraFacing,
   setupCamera, releaseCamera, getAvailableCameras,
   handleCameraChange, toggleCamera
 } = useCamera(connectionStatus, isMobileDevice)
@@ -116,15 +129,14 @@ function handleFileUploaded(file) {
 
 // 处理模式变化
 function handleModeChange(newMode) {
-  console.log('模式已切换到:', newMode) // 添加日志
-  mode.value = newMode // 确保模式被更新
+  mode.value = newMode
   
   if (isRecognizing.value) {
     stopRecognition()
   }
   
   if (newMode === 'realtime') {
-    cameraViewRef.value?.clearUploadedImage()
+    uploadModeRef.value?.clearUploadedImage()
   } else {
     releaseCamera()
   }
@@ -195,7 +207,7 @@ function processVideoFrame() {
   if (!isRecognizing.value) return
   
   if (!isFrameProcessing.value) {
-    const videoFrame = cameraViewRef.value?.captureVideoFrame()
+    const videoFrame = realtimeModeRef.value?.captureVideoFrame()
     if (videoFrame) {
       sendFrame(videoFrame)
     }
@@ -209,7 +221,7 @@ function processVideoFrame() {
 async function processUploadedImage() {
   if (!isRecognizing.value || isUploading.value) return
   
-  const file = cameraViewRef.value?.getUploadedFile()
+  const file = uploadModeRef.value?.getUploadedFile()
   
   if (!file) {
     connectionStatus.value = '请先上传图片'
@@ -259,7 +271,32 @@ function handleRecognitionResult(results) {
   })
   
   // 绘制结果
-  cameraViewRef.value?.drawResults(results, showFaceBox.value, showEmotionText.value, showEmoji.value)
+  if (mode.value === 'realtime') {
+    realtimeModeRef.value?.drawResults(results)
+  } else {
+    uploadModeRef.value?.drawResults(results)
+  }
+}
+
+// 处理上传新图片
+function handleUploadNew() {
+  // 清除当前图片和识别状态
+  uploadModeRef.value?.clearUploadedImage()
+  uploadedFile.value = null
+  isRecognizing.value = false
+  
+  // 重置表情统计
+  emotionStats.value = Object.fromEntries(
+    Object.keys(emotionLabels).map(key => [key, 0])
+  )
+  
+  // 更新状态
+  connectionStatus.value = '请上传新图片'
+  setTimeout(() => {
+    if (connectionStatus.value === '请上传新图片') {
+      connectionStatus.value = ''
+    }
+  }, 2000)
 }
 
 // 监听模型变化
@@ -289,27 +326,6 @@ watch(mode, (newMode) => {
     processUploadedImage()
   }
 })
-
-// 处理上传新图片
-function handleUploadNew() {
-  // 清除当前图片和识别状态
-  cameraViewRef.value?.clearUploadedImage()
-  uploadedFile.value = null
-  isRecognizing.value = false
-  
-  // 重置表情统计
-  emotionStats.value = Object.fromEntries(
-    Object.keys(emotionLabels).map(key => [key, 0])
-  )
-  
-  // 更新状态
-  connectionStatus.value = '请上传新图片'
-  setTimeout(() => {
-    if (connectionStatus.value === '请上传新图片') {
-      connectionStatus.value = ''
-    }
-  }, 2000)
-}
 
 // 组件加载和卸载
 onMounted(async () => {
